@@ -252,13 +252,10 @@
             font-size: 9px;
             letter-spacing: .08em;
         }
-        .song-card iframe {
+        .song-card audio {
             display: block;
             width: 100%;
-            aspect-ratio: 16 / 9;
-            border: 0;
-            border-radius: 11px;
-            background: #100d20;
+            height: 40px;
         }
         .song-hint {
             margin: 8px 4px 1px;
@@ -393,6 +390,7 @@
             width: 330px;
             height: 640px;
             transform-origin: 50% 88%;
+            --dancer-scale: 1;
             animation: dance 3.4s cubic-bezier(.65, 0, .35, 1) infinite;
             filter: drop-shadow(0 24px 20px #09051c55);
         }
@@ -554,10 +552,10 @@
         .paused .spotlight { animation-play-state: paused !important; }
 
         @keyframes dance {
-            0%, 100% { transform: translateY(0) rotate(-3deg) scaleX(1); }
-            25% { transform: translateY(-18px) rotate(5deg) scaleX(.97); }
-            50% { transform: translateY(0) rotate(-5deg) scaleX(1); }
-            75% { transform: translateY(-18px) rotate(3deg) scaleX(.97); }
+            0%, 100% { transform: translateY(0) rotate(-3deg) scaleX(1) scale(var(--dancer-scale)); }
+            25% { transform: translateY(-18px) rotate(5deg) scaleX(.97) scale(var(--dancer-scale)); }
+            50% { transform: translateY(0) rotate(-5deg) scaleX(1) scale(var(--dancer-scale)); }
+            75% { transform: translateY(-18px) rotate(3deg) scaleX(.97) scale(var(--dancer-scale)); }
         }
         @keyframes torso { 0%,100% { transform: rotate(-4deg); } 50% { transform: rotate(4deg); } }
         @keyframes skirt { 0%,100% { transform: skewX(-4deg) scaleX(1); } 50% { transform: skewX(5deg) scaleX(.94); } }
@@ -634,8 +632,9 @@
                 width: 100%;
                 margin: 0 auto;
                 transform: none;
+                overflow: hidden;
             }
-            .dancer { transform: scale(.76); transform-origin: 50% 100%; }
+            .dancer { --dancer-scale: .76; transform-origin: 50% 100%; }
             .spotlight { width: 430px; height: 560px; }
             .floor { width: 430px; }
             .stage-ring { width: 390px; }
@@ -655,7 +654,7 @@
             button { font-size: 12px; }
             .song-card { width: min(100%, 360px); }
             .stage { height: 440px; }
-            .dancer { transform: scale(.64); }
+            .dancer { --dancer-scale: .64; }
             .spotlight { width: 360px; height: 500px; }
             .floor { width: 350px; }
             .stage-ring { width: 320px; }
@@ -678,7 +677,7 @@
             h1 { font-size: 64px; }
             .poem { font-size: 14px; margin: 12px auto; }
             .stage { height: 380px; }
-            .dancer { transform: scale(.55); }
+            .dancer { --dancer-scale: .55; }
         }
     </style>
 </head>
@@ -719,17 +718,13 @@
             </div>
             <div class="song-card">
                 <div class="song-heading">
-                    <span>Your song pick</span>
-                    <span>From YouTube</span>
+                    <span>Kritika's song</span>
+                    <span>Now playing</span>
                 </div>
-                <iframe
-                    id="youtubeSong"
-                    src="https://www.youtube.com/embed/a6cJAFFQn_I?autoplay=1&amp;playsinline=1&amp;rel=0&amp;enablejsapi=1"
-                    title="YouTube song selected for Kritika's dance tribute"
-                    allow="autoplay; encrypted-media; picture-in-picture"
-                    referrerpolicy="strict-origin-when-cross-origin"
-                    allowfullscreen></iframe>
-                <p class="song-hint">Autoplay depends on browser settings. If it stays quiet, tap play in the video.</p>
+                <audio id="localSong" src="assets/kritika-song.mp3" autoplay controls preload="auto">
+                    Your browser does not support audio playback.
+                </audio>
+                <p class="song-hint" id="songHint" aria-live="polite">Autoplay requested. If your browser blocks sound, tap Enter the stage.</p>
             </div>
         </section>
 
@@ -765,7 +760,8 @@
         const sparkleButton = document.getElementById("sparkleButton");
         const opening = document.getElementById("opening");
         const enterButton = document.getElementById("enterButton");
-        const youtubeSong = document.getElementById("youtubeSong");
+        const localSong = document.getElementById("localSong");
+        const songHint = document.getElementById("songHint");
         const cursorGlow = document.getElementById("cursorGlow");
         const canvas = document.getElementById("magicCanvas");
         const ctx = canvas.getContext("2d");
@@ -815,11 +811,17 @@
 
         enterButton.addEventListener("click", () => {
             opening.classList.add("hidden");
-            youtubeSong.contentWindow.postMessage(
-                JSON.stringify({ event: "command", func: "playVideo", args: [] }),
-                "https://www.youtube.com"
-            );
+            localSong.play().then(() => {
+                songHint.textContent = "Now playing Kritika's song";
+            }).catch(error => {
+                songHint.textContent = "Tap play on the audio player to start the song.";
+                console.error("Could not start the bundled song:", error);
+            });
             setTimeout(celebrate, 450);
+        });
+
+        localSong.addEventListener("play", () => {
+            songHint.textContent = "Now playing Kritika's song";
         });
 
         danceButton.addEventListener("click", () => {
